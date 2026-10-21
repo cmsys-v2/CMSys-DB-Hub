@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CMSys-V2 Database Management Hub (v2.4.0) | Naval Civil Works</title>
+  <title>CMSys-V2 Database Management Hub (v2.5.0) | Naval Civil Works</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="forensic-audit-engine.js"></script>
   <script src="architecture-topology-renderer.js"></script>
+  <script src="system-maps-renderer.js"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -265,6 +266,80 @@
       border-color: #fbbf24; transform: scale(1.05);
     }
 
+    /* ── System Maps (concept / flowchart / network renderers) ── */
+    .sysmap-shell { display: flex; flex-direction: column; gap: 0; background: #030712; border: 1px solid #1e293b; border-radius: 14px; overflow: hidden; }
+    .sysmap-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; background: rgba(10,22,40,0.92); border-bottom: 1px solid #1e293b; }
+    .sysmap-title { font-size: 12.5px; font-weight: 800; color: #fff; letter-spacing: 0.3px; }
+    .sysmap-subtitle { font-size: 10.5px; color: #94a3b8; margin-top: 2px; }
+    .sysmap-toolbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .sysmap-zoom-group { display: flex; align-items: center; gap: 4px; background: rgba(2,6,23,0.7); border: 1px solid #1e293b; border-radius: 9px; padding: 3px 6px; }
+    .sysmap-zoom-level { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #94a3b8; min-width: 40px; text-align: center; }
+    .sysmap-btn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border-radius: 8px; border: 1px solid #334155; background: rgba(15,23,42,0.8); color: #cbd5e1; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .sysmap-btn:hover { border-color: #2dd4bf; color: #5eead4; background: rgba(20,184,166,0.12); }
+    .sysmap-btn-accent { border-color: rgba(20,184,166,0.4); color: #2dd4bf; }
+    .sysmap-pill-group { display: flex; flex-wrap: wrap; gap: 6px; }
+    .sysmap-pill { padding: 6px 12px; border-radius: 99px; border: 1px solid #334155; background: rgba(2,6,23,0.6); color: #94a3b8; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+    .sysmap-pill:hover { color: #e2e8f0; border-color: #64748b; }
+    .sysmap-pill-active { background: rgba(20,184,166,0.16); border-color: rgba(20,184,166,0.55); color: #5eead4; }
+    .sysmap-canvas { position: relative; height: min(72vh, 820px); overflow: hidden; background:
+      radial-gradient(1200px 500px at 20% -10%, rgba(20,184,166,0.06), transparent 60%),
+      radial-gradient(900px 420px at 90% 110%, rgba(59,130,246,0.06), transparent 60%), #030712; }
+    .sysmap-canvas svg { width: 100%; height: 100%; display: block; user-select: none; }
+    .sysmap-tooltip { position: absolute; z-index: 30; max-width: 280px; background: rgba(2,6,23,0.96); border: 1px solid rgba(45,212,191,0.45); color: #e2e8f0; border-radius: 10px; padding: 8px 11px; font-size: 11px; line-height: 1.5; pointer-events: none; box-shadow: 0 12px 32px rgba(0,0,0,0.55); }
+    .sysmap-tooltip strong { color: #5eead4; }
+    .sysmap-legend { padding: 8px 14px; border-top: 1px solid #1e293b; background: rgba(10,22,40,0.6); font-size: 10.5px; color: #94a3b8; }
+    .sysmap-node { cursor: pointer; }
+    .sysmap-node:hover { filter: url(#mapGlow); }
+
+    /* ── UI/UX polish: focus states, kbd, toasts, overlay ── */
+    button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible {
+      outline: 2px solid #2dd4bf; outline-offset: 2px; border-radius: 6px;
+    }
+    kbd {
+      display: inline-block; padding: 1px 6px; border-radius: 5px; border: 1px solid #334155;
+      border-bottom-width: 2px; background: #0b1220; color: #cbd5e1;
+      font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600;
+    }
+    .toast-success { background: #059669 !important; }
+    .toast-error   { background: #e11d48 !important; }
+    .toast-warn    { background: #d97706 !important; }
+    .toast-info    { background: #0284c7 !important; }
+    #toastNotification i { transition: transform 0.2s; }
+
+    /* App loading overlay */
+    #appLoadingOverlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: radial-gradient(900px 500px at 50% 20%, rgba(20,184,166,0.10), transparent 60%), #020617;
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+    }
+    #appLoadingOverlay.overlay-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .load-card { text-align: center; max-width: 340px; padding: 28px; }
+    .load-ring { width: 64px; height: 64px; margin: 0 auto 18px; border-radius: 50%;
+      border: 3px solid rgba(20,184,166,0.2); border-top-color: #2dd4bf; animation: spin 0.9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Tab + section entrance */
+    .tab-content:not(.hidden) { animation: tabFadeIn 0.28s ease; }
+    @keyframes tabFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .tab-btn { transition: color 0.18s, border-color 0.18s, background 0.18s; border-radius: 8px 8px 0 0; }
+    .tab-btn:hover { background: rgba(30,41,59,0.45); }
+
+    /* Connection pill tier tinting */
+    .conn-pill { transition: border-color 0.25s, box-shadow 0.25s; }
+    .conn-pill.tier-primary  { border-color: rgba(16,185,129,0.5); box-shadow: 0 0 12px rgba(16,185,129,0.12); }
+    .conn-pill.tier-fallback { border-color: rgba(245,158,11,0.55); box-shadow: 0 0 12px rgba(245,158,11,0.14); }
+    .conn-pill.tier-seed     { border-color: rgba(14,165,233,0.55); box-shadow: 0 0 12px rgba(14,165,233,0.14); }
+    .conn-pill.tier-offline  { border-color: rgba(244,63,94,0.55); box-shadow: 0 0 12px rgba(244,63,94,0.16); }
+
+    /* Shortcuts modal rows */
+    .shortcut-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid rgba(30,41,59,0.5); font-size: 12px; color: #cbd5e1; }
+    .shortcut-row:last-child { border-bottom: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+
     /* Print certificate styling */
     @media print {
       body * { visibility: hidden; }
@@ -278,6 +353,16 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-teal-500 selection:text-white">
 
+  <!-- APP LOADING OVERLAY -->
+  <div id="appLoadingOverlay" aria-hidden="true">
+    <div class="load-card">
+      <div class="load-ring"></div>
+      <div class="font-extrabold text-white text-base tracking-wide">CMSys V2 · Database Hub</div>
+      <div class="text-xs text-teal-300 mono mt-2" id="loadStatusText">Establishing link to the data tier…</div>
+      <div class="text-[10px] text-slate-500 mt-3 mono">Primary RTDB → OPS RTDB → Local Seed</div>
+    </div>
+  </div>
+
   <!-- TOP HEADER -->
   <header class="border-b border-slate-800 bg-navy-900/90 backdrop-blur sticky top-0 z-50 px-4 lg:px-8 py-2.5 flex flex-wrap items-center justify-between gap-3">
     <div class="flex items-center gap-3">
@@ -288,7 +373,7 @@
         <div class="flex items-center gap-2">
           <span class="font-extrabold text-base tracking-wide text-white">CMSys V2</span>
           <span class="text-xs px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 font-mono font-medium border border-teal-500/30">DATABASE HUB</span>
-          <span class="text-xs px-2 py-0.5 rounded-full bg-gold-500/20 text-gold-300 font-mono font-medium border border-gold-500/30">v2.4.0</span>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-gold-500/20 text-gold-300 font-mono font-medium border border-gold-500/30">v2.5.0</span>
           <span class="hidden md:inline-flex text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">FORENSIC &amp; SYNC</span>
         </div>
         <p class="text-xs text-slate-400">Naval Civil Works Productivity Suite • Command, Forensic Audit, Two-Way Sync &amp; Visual Topology</p>
@@ -297,7 +382,7 @@
 
     <!-- CONNECTION STATUS & ACTIONS -->
     <div class="flex items-center gap-2.5 flex-wrap">
-      <div class="flex items-center gap-2 bg-slate-900/90 border border-slate-800 rounded-lg px-3 py-1.5 text-xs shadow-inner">
+      <div id="connStatusPill" class="conn-pill flex items-center gap-2 bg-slate-900/90 border border-slate-800 rounded-lg px-3 py-1.5 text-xs shadow-inner" title="Active database tier (cascading failover: Primary → OPS → Local Seed)">
         <span id="connIndicator" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
         <span id="connStatusText" class="text-slate-300 font-medium">CONNECTING...</span>
         <span id="connLatency" class="mono text-slate-400 text-[11px] border-l border-slate-700 pl-2">-- ms</span>
@@ -311,6 +396,11 @@
       <button onclick="openAuditCertificateModal()" class="flex items-center gap-1.5 bg-navy-850 hover:bg-navy-800 border border-slate-700 text-gold-400 rounded-lg px-2.5 py-1.5 text-xs font-medium transition shadow-sm" title="Official SLN Audit Certificate">
         <i class="fa-solid fa-certificate"></i>
         <span class="hidden sm:inline">Audit Certificate</span>
+      </button>
+
+      <button onclick="openShortcutsModal()" class="flex items-center gap-1.5 bg-navy-850 hover:bg-navy-800 border border-slate-700 text-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium transition shadow-sm" title="Keyboard shortcuts (?)">
+        <i class="fa-solid fa-keyboard text-sky-400"></i>
+        <span class="hidden lg:inline">Shortcuts</span>
       </button>
 
       <div class="hidden xl:flex items-center gap-2 bg-navy-850 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-300">
@@ -330,23 +420,24 @@
   </header>
 
   <!-- NAVIGATION TABS -->
-  <nav class="bg-navy-900 border-b border-slate-800 px-4 lg:px-8 flex overflow-x-auto gap-2">
-    <button onclick="switchTab('explorer')" id="tabBtn-explorer" class="tab-btn px-4 py-3 border-b-2 border-teal-500 text-teal-400 font-semibold text-xs flex items-center gap-2 whitespace-nowrap">
+  <nav class="bg-navy-900 border-b border-slate-800 px-4 lg:px-8 flex overflow-x-auto gap-2" aria-label="Primary">
+    <button onclick="switchTab('explorer')" id="tabBtn-explorer" title="Live Node Explorer — browse, filter, edit & export all RTDB nodes" class="tab-btn px-4 py-3 border-b-2 border-teal-500 text-teal-400 font-semibold text-xs flex items-center gap-2 whitespace-nowrap">
       <i class="fa-solid fa-table-cells"></i>
-      <span>Live Node Explorer</span>
+      <span>Explorer</span>
     </button>
-    <button onclick="switchTab('matrix')" id="tabBtn-matrix" class="tab-btn px-4 py-3 border-b-2 border-transparent text-slate-400 hover:text-white font-semibold text-xs flex items-center gap-2 whitespace-nowrap">
+    <button onclick="switchTab('matrix')" id="tabBtn-matrix" title="Architecture &amp; Maps — concept maps, flowcharts, network map, ERD & REL matrix" class="tab-btn px-4 py-3 border-b-2 border-transparent text-slate-400 hover:text-white font-semibold text-xs flex items-center gap-2 whitespace-nowrap">
       <i class="fa-solid fa-diagram-project"></i>
-      <span>Interactive Architecture &amp; Graph Topology</span>
+      <span>Architecture &amp; Maps</span>
+      <span class="hidden md:inline-flex text-[9px] px-1.5 py-0.2 rounded bg-sky-500/15 text-sky-300 border border-sky-500/25 font-mono">NEW</span>
     </button>
-    <button onclick="switchTab('integrity')" id="tabBtn-integrity" class="tab-btn px-4 py-3 border-b-2 border-transparent text-slate-400 hover:text-white font-semibold text-xs flex items-center gap-2 whitespace-nowrap">
+    <button onclick="switchTab('integrity')" id="tabBtn-integrity" title="Deep Forensic Audit Validator — 8-rule integrity engine" class="tab-btn px-4 py-3 border-b-2 border-transparent text-slate-400 hover:text-white font-semibold text-xs flex items-center gap-2 whitespace-nowrap">
       <i class="fa-solid fa-shield-halved"></i>
-      <span>Deep Forensic Audit Validator (8-Rule Engine)</span>
+      <span>Forensic Audit</span>
       <span id="auditAnomalyBadge" class="hidden px-1.5 py-0.2 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold">Alerts</span>
     </button>
-    <button onclick="switchTab('backup')" id="tabBtn-backup" class="tab-btn px-4 py-3 border-b-2 border-transparent text-slate-400 hover:text-white font-semibold text-xs flex items-center gap-2 whitespace-nowrap">
+    <button onclick="switchTab('backup')" id="tabBtn-backup" title="Backup, Export &amp; Environmental Security" class="tab-btn px-4 py-3 border-b-2 border-transparent text-slate-400 hover:text-white font-semibold text-xs flex items-center gap-2 whitespace-nowrap">
       <i class="fa-solid fa-cloud-arrow-down"></i>
-      <span>Backup, Export &amp; Environmental Security</span>
+      <span>Backup &amp; Security</span>
     </button>
   </nav>
 
@@ -655,24 +746,46 @@
           <p class="text-[11px] text-slate-400 mt-0.5">Explore 26 core schema relationships, live entity-relationship diagrams, and federated dockyard topology.</p>
         </div>
 
-        <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
-          <button onclick="switchMatrixView('matrix')" id="subViewBtn-matrix" class="subview-btn px-3 py-1 rounded-lg text-xs font-semibold bg-teal-600 text-white transition flex items-center gap-1.5">
+        <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 flex-wrap">
+          <button onclick="switchMatrixView('dbmaps')" id="subViewBtn-dbmaps" class="subview-btn px-3 py-1 rounded-lg text-xs font-semibold bg-teal-600 text-white transition flex items-center gap-1.5">
+            <i class="fa-solid fa-brain"></i>
+            <span>DB Connection Maps</span>
+          </button>
+          <button onclick="switchMatrixView('integration')" id="subViewBtn-integration" class="subview-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1.5">
+            <i class="fa-solid fa-share-nodes"></i>
+            <span>Integration Map</span>
+          </button>
+          <button onclick="switchMatrixView('matrix')" id="subViewBtn-matrix" class="subview-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1.5">
             <i class="fa-solid fa-table-cells-large"></i>
-            <span>Card Matrix View (REL-01~26)</span>
+            <span>REL Matrix (26)</span>
           </button>
           <button onclick="switchMatrixView('erd')" id="subViewBtn-erd" class="subview-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1.5">
             <i class="fa-solid fa-diagram-project"></i>
-            <span>Interactive ERD Schema Graph</span>
+            <span>ERD Schema</span>
           </button>
           <button onclick="switchMatrixView('topology')" id="subViewBtn-topology" class="subview-btn px-3 py-1 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1.5">
             <i class="fa-solid fa-globe"></i>
-            <span>Federated System Topology</span>
+            <span>Federated Topology</span>
           </button>
         </div>
       </div>
 
+      <!-- VIEW 0A: DB CONNECTION MAPS (concept map / flowcharts / network map) -->
+      <div id="matrixSubView-dbmaps" class="space-y-3">
+        <div data-dbmaps-container>
+          <!-- Rendered by system-maps-renderer.js -->
+        </div>
+      </div>
+
+      <!-- VIEW 0B: SYSTEM INTEGRATION CONCEPT MAP -->
+      <div id="matrixSubView-integration" class="hidden space-y-3">
+        <div data-integration-container>
+          <!-- Rendered by system-maps-renderer.js -->
+        </div>
+      </div>
+
       <!-- VIEW 1: CARD MATRIX VIEW -->
-      <div id="matrixSubView-cards" class="space-y-3">
+      <div id="matrixSubView-cards" class="hidden space-y-3">
         <div class="flex items-center justify-between text-xs text-slate-400 px-1">
           <span>26 Registered Naval System Interconnections with Live Dynamic Health Counters:</span>
           <span class="mono text-teal-400 font-semibold" id="matrixHealthSummary">26/26 Monitored</span>
@@ -2013,11 +2126,38 @@
 
   <!-- TOAST NOTIFICATION -->
   <div id="toastNotification" class="fixed bottom-4 right-4 bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-xs font-semibold shadow-2xl z-50 transition-all duration-300 opacity-0 pointer-events-none flex items-center gap-2 transform translate-y-2">
-    <i class="fa-solid fa-circle-check text-sm"></i>
+    <i id="toastIcon" class="fa-solid fa-circle-check text-sm"></i>
     <span id="toastMessage">Synced to Firebase RTDB</span>
   </div>
 
-  <!-- APPLICATION JAVASCRIPT ENGINE (v2.4.0) -->
+  <!-- KEYBOARD SHORTCUTS MODAL -->
+  <div id="shortcutsModal" class="hidden fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
+    <div class="bg-navy-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md">
+      <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-800">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-keyboard text-sky-400"></i> Keyboard Shortcuts
+        </h3>
+        <button onclick="closeShortcutsModal()" class="text-slate-400 hover:text-white text-base" aria-label="Close shortcuts">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="px-5 py-3">
+        <div class="shortcut-row"><span>Switch to Explorer</span><span><kbd>1</kbd></span></div>
+        <div class="shortcut-row"><span>Switch to Architecture &amp; Maps</span><span><kbd>2</kbd></span></div>
+        <div class="shortcut-row"><span>Switch to Forensic Audit</span><span><kbd>3</kbd></span></div>
+        <div class="shortcut-row"><span>Switch to Backup &amp; Security</span><span><kbd>4</kbd></span></div>
+        <div class="shortcut-row"><span>Focus record search</span><span><kbd>/</kbd></span></div>
+        <div class="shortcut-row"><span>Sync live data now</span><span><kbd>R</kbd></span></div>
+        <div class="shortcut-row"><span>Open this help</span><span><kbd>?</kbd></span></div>
+        <div class="shortcut-row"><span>Close modal / cancel edit</span><span><kbd>Esc</kbd></span></div>
+      </div>
+      <div class="px-5 py-3 border-t border-slate-800 text-[11px] text-slate-400">
+        Shortcuts are disabled while typing in a field. Tip: in the maps, scroll to zoom and drag to pan.
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION JAVASCRIPT ENGINE (v2.5.0) -->
   <script>
     // =============================================
     // 1. ENDPOINTS & FAILOVER CONFIGURATION
@@ -2040,7 +2180,7 @@
     let pageSize = 100;
     let hiddenColumns = new Set();
     let currentEditId = null;
-    let activeMatrixSubView = 'matrix';
+    let activeMatrixSubView = 'dbmaps';
     let currentTargetDate = '2026-10-20';
 
     // Discrepancy & Audit State Caches
@@ -2146,7 +2286,6 @@
         if (!res.ok) throw new Error('Data fetch failed: HTTP ' + res.status);
         databaseCache = await res.json() || {};
         window.dbCache = databaseCache;
-
         // Ensure audit_log and daily_evaluations nodes exist
         if (!databaseCache.audit_log) databaseCache.audit_log = {};
         if (!databaseCache.daily_evaluations) databaseCache.daily_evaluations = {};
@@ -2178,6 +2317,19 @@
         const connInd = document.getElementById('connIndicator');
         if (connInd) connInd.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
 
+        // Tier-aware connection pill (emerald = primary, amber = OPS failover, sky = seed, rose = offline)
+        const connPill = document.getElementById('connStatusPill');
+        if (connPill) {
+          connPill.classList.remove('tier-primary', 'tier-fallback', 'tier-seed', 'tier-offline');
+          const tierCls = DB_BASE_URL === DB_TARGET_PRIMARY ? 'tier-primary'
+            : DB_BASE_URL === DB_FALLBACK_OPS ? 'tier-fallback'
+            : DB_BASE_URL === DB_LOCAL_SEED ? 'tier-seed' : 'tier-offline';
+          connPill.classList.add(tierCls);
+          connPill.title = `Active data tier: ${activeSource}\nEndpoint: ${DB_BASE_URL}\nFailover ladder: Primary → OPS → Local Seed`;
+          if (connInd && tierCls === 'tier-fallback') connInd.className = 'w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse';
+          if (connInd && tierCls === 'tier-seed') connInd.className = 'w-2.5 h-2.5 rounded-full bg-sky-500 animate-pulse';
+        }
+
         // Update Top KPI counters
         updateStatCounters();
 
@@ -2191,8 +2343,16 @@
         if (connText) connText.innerText = 'OFFLINE / ERROR';
         const connInd = document.getElementById('connIndicator');
         if (connInd) connInd.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+        const connPill = document.getElementById('connStatusPill');
+        if (connPill) {
+          connPill.classList.remove('tier-primary', 'tier-fallback', 'tier-seed');
+          connPill.classList.add('tier-offline');
+        }
+        showToast('Connection failed — check network or RTDB rules', 'error');
       } finally {
         if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+        const overlay = document.getElementById('appLoadingOverlay');
+        if (overlay) overlay.classList.add('overlay-hidden');
       }
     }
 
@@ -4496,9 +4656,16 @@
     // =============================================
     function switchMatrixView(subView) {
       activeMatrixSubView = subView;
-      ['matrix', 'erd', 'topology'].forEach(v => {
+      const viewIds = {
+        dbmaps: 'matrixSubView-dbmaps',
+        integration: 'matrixSubView-integration',
+        matrix: 'matrixSubView-cards',
+        erd: 'matrixSubView-erd',
+        topology: 'matrixSubView-topology'
+      };
+      Object.entries(viewIds).forEach(([v, viewId]) => {
         const btn = document.getElementById(`subViewBtn-${v}`);
-        const viewEl = document.getElementById(`matrixSubView-${v === 'matrix' ? 'cards' : v}`);
+        const viewEl = document.getElementById(viewId);
         if (btn) {
           if (v === subView) {
             btn.className = 'subview-btn px-3 py-1 rounded-lg text-xs font-semibold bg-teal-600 text-white transition flex items-center gap-1.5';
@@ -4512,6 +4679,21 @@
         }
       });
 
+      // Lazy-render map views on first activation
+      if (subView === 'dbmaps') {
+        const host = document.querySelector('[data-dbmaps-container]');
+        if (host && window.CmsysMaps && !host.dataset.rendered) {
+          window.CmsysMaps.renderDbConnectionMaps(host);
+          host.dataset.rendered = '1';
+        }
+      }
+      if (subView === 'integration') {
+        const host = document.querySelector('[data-integration-container]');
+        if (host && window.CmsysMaps && !host.dataset.rendered) {
+          window.CmsysMaps.renderIntegrationConceptMap(host);
+          host.dataset.rendered = '1';
+        }
+      }
       if (subView === 'erd') renderInteractiveERD();
       if (subView === 'topology') testAllTierLatencies();
     }
@@ -5559,14 +5741,28 @@
       a.click();
     }
 
-    function showToast(msg) {
+    function showToast(msg, type = 'success') {
       const toast = document.getElementById('toastNotification');
       const msgEl = document.getElementById('toastMessage');
+      const iconEl = document.getElementById('toastIcon');
+      const variants = {
+        success: { cls: 'toast-success', icon: 'fa-circle-check' },
+        error:   { cls: 'toast-error',   icon: 'fa-circle-xmark' },
+        warn:    { cls: 'toast-warn',    icon: 'fa-triangle-exclamation' },
+        info:    { cls: 'toast-info',    icon: 'fa-circle-info' }
+      };
+      const v = variants[type] || variants.success;
       if (msgEl) msgEl.innerText = msg;
       if (toast) {
+        toast.classList.remove('toast-success', 'toast-error', 'toast-warn', 'toast-info', 'bg-emerald-600');
+        toast.classList.add(v.cls);
+        if (iconEl) {
+          iconEl.className = `fa-solid ${v.icon} text-sm`;
+        }
         toast.classList.remove('opacity-0', 'translate-y-2');
         toast.classList.add('opacity-100', 'translate-y-0');
-        setTimeout(() => {
+        clearTimeout(showToast._t);
+        showToast._t = setTimeout(() => {
           toast.classList.remove('opacity-100', 'translate-y-0');
           toast.classList.add('opacity-0', 'translate-y-2');
         }, 3200);
@@ -5590,7 +5786,10 @@
       }
 
       if (tabId === 'integrity') runFull8RuleAudit(true);
-      if (tabId === 'matrix' && activeMatrixSubView === 'erd') renderInteractiveERD();
+      if (tabId === 'matrix') {
+        if (activeMatrixSubView === 'erd') renderInteractiveERD();
+        else switchMatrixView(activeMatrixSubView); // ensure lazy map rendering
+      }
     }
 
     function sortByColumn(k) {
@@ -5686,6 +5885,49 @@
     window.syncEvaluationsToFirebase = syncEvaluationsToFirebase;
     window.executeSchemaSanitization = executeSchemaSanitization;
     window.runFull8RuleAudit = runFull8RuleAudit;
+
+    // =============================================
+    // 11. KEYBOARD SHORTCUTS & HELP MODAL
+    // =============================================
+    function openShortcutsModal() {
+      const m = document.getElementById('shortcutsModal');
+      if (m) m.classList.remove('hidden');
+    }
+    function closeShortcutsModal() {
+      const m = document.getElementById('shortcutsModal');
+      if (m) m.classList.add('hidden');
+    }
+    window.openShortcutsModal = openShortcutsModal;
+    window.closeShortcutsModal = closeShortcutsModal;
+
+    document.addEventListener('keydown', (e) => {
+      const tag = (e.target.tagName || '').toLowerCase();
+      const isTyping = tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable;
+
+      if (e.key === 'Escape') {
+        closeShortcutsModal();
+        return;
+      }
+      if (isTyping || e.ctrlKey || e.metaKey || e.altKey) return;
+
+      if (e.key === '1') { switchTab('explorer'); }
+      else if (e.key === '2') { switchTab('matrix'); }
+      else if (e.key === '3') { switchTab('integrity'); }
+      else if (e.key === '4') { switchTab('backup'); }
+      else if (e.key === '/') {
+        e.preventDefault();
+        switchTab('explorer');
+        const s = document.getElementById('nodeSearch');
+        if (s) s.focus();
+      }
+      else if (e.key === 'r' || e.key === 'R') {
+        fetchAllData();
+        showToast('Syncing live data tier…', 'info');
+      }
+      else if (e.key === '?') {
+        openShortcutsModal();
+      }
+    });
 
     // Auto-load on startup
     window.addEventListener('DOMContentLoaded', fetchAllData);
