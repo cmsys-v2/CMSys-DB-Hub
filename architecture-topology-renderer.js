@@ -183,7 +183,7 @@ function renderTopologyView() {
                 <div class="font-semibold text-slate-200">Primary Cloud RTDB</div>
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
               </div>
-              <div class="text-emerald-400 text-[11px] mt-1">cmsys-v2-1fb05 (asia-southeast1)</div>
+              <div class="text-emerald-400 text-[11px] mt-1">cmsys-v2 (asia-southeast1)</div>
               <div class="text-[10px] text-slate-500 mt-1">Live WebSocket listener & REST write-back target.</div>
             </div>
             <div class="p-3 rounded-lg bg-slate-950 border border-slate-800">
@@ -191,7 +191,7 @@ function renderTopologyView() {
                 <div class="font-semibold text-slate-200">Secondary Failover RTDB</div>
                 <span class="w-2 h-2 rounded-full bg-blue-400"></span>
               </div>
-              <div class="text-slate-400 text-[11px] mt-1">ncw-ps-operations (asia-southeast1)</div>
+              <div class="text-slate-400 text-[11px] mt-1">cmsys-v2 (replica / asia-southeast1)</div>
               <div class="text-[10px] text-slate-500 mt-1">Auto-failover when primary latency exceeds 4,000ms.</div>
             </div>
             <div class="p-3 rounded-lg bg-slate-950 border border-slate-800">

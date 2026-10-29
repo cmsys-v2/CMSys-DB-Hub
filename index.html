@@ -616,7 +616,7 @@
                 <tr>
                   <td colspan="7" class="p-10 text-center text-slate-500 mono">
                     <i class="fa-solid fa-arrows-rotate fa-spin text-teal-400 text-lg mb-2 block"></i>
-                    Connecting to cmsys-v2-1fb05 RTDB...
+                    Connecting to cmsys-v2 RTDB...
                   </td>
                 </tr>
               </tbody>
@@ -789,7 +789,7 @@
                   <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                   Primary Cloud RTDB
                 </div>
-                <div class="text-[10px] text-slate-400 mono">cmsys-v2-1fb05</div>
+                <div class="text-[10px] text-slate-400 mono">cmsys-v2</div>
               </div>
               <span id="topoPingPrimary" class="mono text-xs text-emerald-400 font-bold">-- ms</span>
             </div>
@@ -800,7 +800,7 @@
                   <span class="w-2 h-2 rounded-full bg-blue-500"></span>
                   Secondary Failover RTDB
                 </div>
-                <div class="text-[10px] text-slate-400 mono">ncw-ps-operations</div>
+                <div class="text-[10px] text-slate-400 mono">cmsys-v2 (replica)</div>
               </div>
               <span id="topoPingSecondary" class="mono text-xs text-blue-400 font-bold">-- ms</span>
             </div>
@@ -2022,8 +2022,8 @@
     // =============================================
     // 1. ENDPOINTS & FAILOVER CONFIGURATION
     // =============================================
-    const DB_TARGET_PRIMARY = 'https://cmsys-v2-1fb05-default-rtdb.asia-southeast1.firebasedatabase.app';
-    const DB_FALLBACK_OPS   = 'https://ncw-ps-operations-default-rtdb.asia-southeast1.firebasedatabase.app';
+    const DB_TARGET_PRIMARY = 'https://cmsys-v2-default-rtdb.asia-southeast1.firebasedatabase.app';
+    const DB_FALLBACK_OPS   = 'https://cmsys-v2-default-rtdb.asia-southeast1.firebasedatabase.app';
     const DB_LOCAL_SEED     = '../CMSys%20V2/cmsys-v2-1fb05-seed.json';
     const LOCAL_API_URL     = '../CMSys%20V2/api.php';
 
@@ -2112,7 +2112,7 @@
           clearTimeout(timeoutId);
           if (res.ok) {
             DB_BASE_URL = DB_TARGET_PRIMARY;
-            activeSource = 'cmsys-v2-1fb05 LIVE';
+            activeSource = 'cmsys-v2 LIVE';
           } else {
             throw new Error('Primary HTTP ' + res.status);
           }
@@ -2126,7 +2126,7 @@
             clearTimeout(timeoutId2);
             if (res.ok) {
               DB_BASE_URL = DB_FALLBACK_OPS;
-              activeSource = 'ncw-ps-operations ACTIVE';
+              activeSource = 'cmsys-v2 ACTIVE';
             } else {
               throw new Error('Secondary HTTP ' + res.status);
             }
